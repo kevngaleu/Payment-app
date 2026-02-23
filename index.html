@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ejara FX - Agent Portal</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #F5F7FA; }
+        #root { min-height: 100vh; }
+        .app-container { max-width: 480px; margin: 0 auto; background: white; min-height: 100vh; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Mock Backend - includes customer address data
+        const mockDB = {
+            agents: [
+                { id: 'A001', username: 'agent001', name: 'Jean Mballa', phone: '+237670123456', pin: '1234', balance: 1000000 },
+                { id: 'A002', username: 'agent002', name: 'Marie Nkolo', phone: '+237670234567', pin: '1234', balance: 1000000 }
+            ],
+            customers: [
+                { 
+                    id: 'C001', 
+                    username: 'mme_tamo', 
+                    name: 'Mme Tamo', 
+                    phone: '+237680111111', 
+                    kycTier: 'basic',
+                    country: 'Cameroon',
+                    city: 'Yaoundé',
+                    region: 'Centre',
+                    portfolio: 'Marché Congo'
+                },
+                { 
+                    id: 'C002', 
+                    username: 'm_propers', 
+                    name: 'M. Propers', 
+                    phone: '+237680222222', 
+                    kycTier: 'basic',
+                    country: 'Cameroon',
+                    city: 'Douala',
+                    region: 'Littoral',
+                    portfolio: 'Marché Central'
+                },
+                { 
+                    id: 'C003', 
+                    username: 'm_martin', 
+                    name: 'M. Martin', 
+                    phone: '+237680333333', 
+                    kycTier: 'basic',
+                    country: 'Cameroon',
+                    city: 'Yaoundé',
+                    region: 'Centre',
+                    portfolio: 'Marché Congo'
+                },
+                { 
+                    id: 'C004', 
+                    username: 'alice_traders', 
+                    name: 'Alice Mbongo', 
+                    phone: '+237680444444', 
+                    kycTier: 'basic',
+                    country: 'Cameroon',
+                    city: 'Yaoundé',
+                    region: 'Centre',
+                    portfolio: 'Marché Mfoundi'
+                }
+            ],
+            transactions: [],
+            ejaraCompanyCode: '237'  // Ejara postal code
+        };
+
+        const nigerianStates = [
+            'Lagos', 'Abuja FCT', 'Kano', 'Rivers', 'Oyo', 'Kaduna', 'Anambra', 
+            'Enugu', 'Delta', 'Ogun', 'Edo', 'Imo', 'Kwara', 'Osun', 'Abia'
+        ];
+
+        const mockAPI = {
+            login: (username, pin) => {
+                const agent = mockDB.agents.find(a => a.username === username && a.pin === pin);
+                if (!agent) throw new Error('Invalid credentials');
+                return { success: true, agent };
+            },
+            searchCustomer: (username) => {
+                const customer = mockDB.customers.find(c => c.username === username);
+                if (!customer) throw new Error('Customer not found');
+                return { success: true, customer };
+            },
+            generateQuote: (sourceAmount) => {
+                const exchangeRate = 2.47;
+                const destinationAmount = Math.floor(sourceAmount * exchangeRate);
+                const ejaraFee = Math.floor(sourceAmount * 0.015);
+                const networkFee = Math.floor(sourceAmount * 0.007);
+                const totalCost = sourceAmount + ejaraFee + networkFee;
+                
+                return {
+                    success: true,
+                    quote: { sourceAmount, destinationAmount, exchangeRate, ejaraFee, networkFee, totalCost }
+                };
+            },
+            createTransaction: (agentId, customerId, beneficiary, quote) => {
+                const agent = mockDB.agents.find(a => a.id === agentId);
+                if (agent.balance < quote.totalCost) throw new Error('Insufficient balance');
+                
+                agent.balance -= quote.totalCost;
+                
+                const txn = {
+                    id: `TRX-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+                    agentId, customerId, ...beneficiary,
+                    sourceAmount: quote.sourceAmount,
+                    destinationAmount: quote.destinationAmount,
+                    totalCost: quote.totalCost,
+                    status: 'CREATED',
+                    createdAt: new Date().toISOString()
+                };
+                
+                mockDB.transactions.push(txn);
+                return { success: true, transaction: txn };
+            },
+            getTransactions: (agentId) => mockDB.transactions.filter(t => t.agentId === agentId),
+            getAgentBalance: (agentId) => mockDB.agents.find(a => a.id === agentId)?.balance || 0
+        };
+
+        const formatAmount = (num) => new Intl.NumberFormat('fr-FR').format(num);
+
+        function Login({ onLogin }) {
+            const [username, setUsername] = useState('');
+            const [pin, setPin] = useState('');
+            const [error, setError] = useState('');
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                setError('');
+                try {
+                    const result = mockAPI.login(username, pin);
+                    onLogin(result.agent);
+                } catch (err) {
+                    setError(err.message);
+                }
+            };
+
+            return (
+                <div style={{ padding: '40px 20px', minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                    <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+                        <h1 style={{ fontSize: '32px', fontWeight: '700', color: '#1a1a1a', marginBottom: '8px' }}>Ejara FX</h1>
+                        <p style={{ fontSize: '16px', color: '#6B7280' }}>Agent Login</p>
+                    </div>
+
+                    <form onSubmit={handleSubmit}>
+                        <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#6B7280', marginBottom: '8px' }}>Username</label>
+                        <input
+                            type="text"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            placeholder="Enter username"
+                            required
+                            style={{ width: '100%', padding: '14px 16px', border: '1px solid #E5E7EB', borderRadius: '12px', fontSize: '16px', marginBottom: '16px' }}
+                        />
+
+                        <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#6B7280', marginBottom: '8px' }}>PIN</label>
+                        <input
+                            type="password"
+                            value={pin}
+                            onChange={(e) => setPin(e.target.value)}
+                            placeholder="Enter 4-digit PIN"
+                            maxLength="4"
+                            required
+                            style={{ width: '100%', padding: '14px 16px', border: '1px solid #E5E7EB', borderRadius: '12px', fontSize: '16px', marginBottom: '16px' }}
+                        />
+
+                        {error && <div style={{ color: '#EF4444', fontSize: '14px', marginBottom: '16px', textAlign: 'center', padding: '12px', background: '#FEE2E2', borderRadius: '8px' }}>{error}</div>}
+
+                        <button type="submit" style={{ width: '100%', background: '#6366F1', color: 'white', border: 'none', padding: '16px', borderRadius: '12px', fontSize: '16px', fontWeight: '600', cursor: 'pointer' }}>
+                            Login
+                        </button>
+                    </form>
+
+                    <div style={{ marginTop: '32px', padding: '16px', background: '#F9FAFB', borderRadius: '12px' }}>
+                        <p style={{ fontSize: '14px', color: '#6B7280', marginBottom: '8px' }}><strong>Test Credentials:</strong></p>
+                        <p style={{ fontSize: '14px', color: '#6B7280' }}>Username: <strong>agent001</strong></p>
+                        <p style={{ fontSize: '14px', color: '#6B7280' }}>PIN: <strong>1234</strong></p>
+                    </div>
+                </div>
+            );
+        }
+
+        function Dashboard({ agent, onNewTransfer, onLogout }) {
+            const [balance, setBalance] = useState(agent.balance);
+            const transactions = mockAPI.getTransactions(agent.id);
+
+            useEffect(() => {
+                setBalance(mockAPI.getAgentBalance(agent.id));
+            }, [agent.id]);
+
+            return (
+                <div style={{ padding: '20px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                        <div>
+                            <div style={{ fontSize: '14px', color: '#6B7280' }}>Welcome back,</div>
+                            <div style={{ fontSize: '18px', fontWeight: '600' }}>{agent.name}</div>
+                        </div>
+                        <button onClick={onLogout} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer' }} title="Logout">🚪</button>
+                    </div>
+
+                    <div style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', borderRadius: '16px', padding: '20px', color: 'white', marginBottom: '24px' }}>
+                        <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '8px' }}>Wallet Balance</div>
+                        <div style={{ fontSize: '36px', fontWeight: '700' }}>
+                            {formatAmount(balance)} <span style={{ fontSize: '20px' }}>XAF</span>
+                        </div>
+                        <div style={{ fontSize: '12px', opacity: 0.8, marginTop: '8px' }}>Available for transactions</div>
+                    </div>
+
+                    <button onClick={onNewTransfer} style={{ width: '100%', background: '#6366F1', color: 'white', border: 'none', padding: '16px', borderRadius: '12px', fontSize: '16px', fontWeight: '600', cursor: 'pointer', marginBottom: '32px' }}>
+                        ➕ New Transfer
+                    </button>
+
+                    <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>Recent Transactions</h3>
+                    
+                    {transactions.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '40px', color: '#9CA3AF' }}>
+                            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📭</div>
+                            <p>No transactions yet</p>
+                        </div>
+                    ) : (
+                        <div>
+                            {transactions.map(t => (
+                                <div key={t.id} style={{ padding: '16px', borderBottom: '1px solid #F3F4F6' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                        <span style={{ fontWeight: '600' }}>{t.id}</span>
+                                        <span style={{ fontSize: '12px', padding: '4px 12px', borderRadius: '12px', background: '#FEF3C7', color: '#D97706' }}>{t.status}</span>
+                                    </div>
+                                    <div style={{ fontSize: '14px', color: '#6B7280' }}>
+                                        {formatAmount(t.sourceAmount)} XAF → {formatAmount(t.destinationAmount)} NGN
+                                    </div>
+                                    <div style={{ fontSize: '12px', color: '#9CA3AF', marginTop: '4px' }}>
+                                        To: {t.beneficiaryName}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        function CustomerSearch({ onFound, onBack }) {
+            const [username, setUsername] = useState('');
+            const [customer, setCustomer] = useState(null);
+            const [error, setError] = useState('');
+
+            const handleSearch = (e) => {
+                e.preventDefault();
+                setError('');
+                try {
+                    const result = mockAPI.searchCustomer(username);
+                    setCustomer(result.customer);
+                } catch (err) {
+                    setError(err.message);
+                    setCustomer(null);
+                }
+            };
+
+            return (
+                <div style={{ padding: '20px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px' }}>
+                        <button onClick={onBack} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', marginRight: '16px' }}>←</button>
+                        <h2 style={{ fontSize: '18px', fontWeight: '600' }}>Customer Search</h2>
+                    </div>
+
+                    <form onSubmit={handleSearch}>
+                        <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#6B7280', marginBottom: '8px' }}>Enter Customer Username</label>
+                        <input
+                            type="text"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            placeholder="e.g., mme_tamo"
+                            required
+                            autoFocus
+                            style={{ width: '100%', padding: '14px 16px', border: '1px solid #E5E7EB', borderRadius: '12px', fontSize: '16px', marginBottom: '16px' }}
+                        />
+
+                        {error && <div style={{ color: '#EF4444', fontSize: '14px', marginBottom: '16px', padding: '12px', background: '#FEE2E2', borderRadius: '8px' }}>{error}</div>}
+
+                        <button type="submit" style={{ width: '100%', background: '#6366F1', color: 'white', border: 'none', padding: '16px', borderRadius: '12px', fontSize: '16px', fontWeight: '600', cursor: 'pointer' }}>
+                            Search Customer
+                        </button>
+                    </form>
+
+                    {customer && (
+                        <div style={{ marginTop: '32px' }}>
+                            <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
+                                <div style={{ fontSize: '14px', color: '#6B7280', marginBottom: '4px' }}>Customer Found</div>
+                                <div style={{ fontSize: '24px', fontWeight: '600', marginBottom: '16px', color: '#1a1a1a' }}>{customer.name}</div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #F3F4F6' }}>
+                                    <span style={{ color: '#6B7280' }}>Username</span>
+                                    <span style={{ fontWeight: '600' }}>{customer.username}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #F3F4F6' }}>
+                                    <span style={{ color: '#6B7280' }}>Phone</span>
+                                    <span style={{ fontWeight: '600' }}>{customer.phone}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0' }}>
+                                    <span style={{ color: '#6B7280' }}>Location</span>
+                                    <span style={{ fontWeight: '600' }}>{customer.city}, {customer.region}</span>
+                                </div>
+                            </div>
+
+                            <button onClick={() => onFound(customer)} style={{ width: '100%', background: '#6366F1', color: 'white', border: 'none', padding: '16px', borderRadius: '12px', fontSize: '16px', fontWeight: '600', cursor: 'pointer' }}>
+                                Yes, Continue
+                            </button>
+                        </div>
+                    )}
+
+                    <div style={{ marginTop: '32px', padding: '16px', background: '#FEF3C7', borderRadius: '12px' }}>
+                        <p style={{ fontSize: '14px', color: '#92400E' }}><strong>💡 Test Usernames:</strong></p>
+                        <p style={{ fontSize: '13px', color: '#92400E', marginTop: '8px' }}>mme_tamo, m_propers, m_martin, alice_traders</p>
+                    </div>
+                </div>
+            );
+        }
+
+        function QuoteDisplay({ agent, customer, onAccept, onBack }) {
+            const [amount, setAmount] = useState('');
+            const [quote, setQuote] = useState(null);
+            const [timeLeft, setTimeLeft] = useState(60);
+
+            useEffect(() => {
+                if (!quote) return;
+                const timer = setInterval(() => {
+                    setTimeLeft(prev => {
+                        if (prev <= 1) {
+                            clearInterval(timer);
+                            setQuote(null);
+                            alert('Quote expired! Please generate a new quote.');
+                            return 60;
+                        }
+                        return prev - 1;
+                    });
+                }, 1000);
+                return () => clearInterval(timer);
+            }, [quote]);
+
+            const handleGetQuote = (e) => {
+                e.preventDefault();
+                const result = mockAPI.generateQuote(parseInt(amount));
+                setQuote(result.quote);
+                setTimeLeft(60);
+            };
+
+            return (
+                <div style={{ padding: '20px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px' }}>
+                        <button onClick={onBack} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', marginRight: '16px' }}>←</button>
+                        <h2 style={{ fontSize: '18px', fontWeight: '600' }}>Get Quote</h2>
+                    </div>
+
+                    <div style={{ padding: '16px', background: '#F9FAFB', borderRadius: '12px', marginBottom: '24px' }}>
+                        <div style={{ fontSize: '14px', color: '#6B7280' }}>Sending for:</div>
+                        <div style={{ fontSize: '18px', fontWeight: '600', marginTop: '4px' }}>{customer.name}</div>
+                    </div>
+
+                    {!quote ? (
+                        <form onSubmit={handleGetQuote}>
+                            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#6B7280', marginBottom: '8px' }}>Amount to Send (XAF)</label>
+                            <input
+                                type="number"
+                                value={amount}
+                                onChange={(e) => setAmount(e.target.value)}
+                                placeholder="Enter amount"
+                                min="10000"
+                                max="5000000"
+                                step="1000"
+                                required
+                                autoFocus
+                                style={{ width: '100%', padding: '14px 16px', border: '1px solid #E5E7EB', borderRadius: '12px', fontSize: '16px', marginBottom: '8px' }}
+                            />
+                            <div style={{ fontSize: '12px', color: '#6B7280', marginBottom: '16px' }}>Min: 10,000 XAF • Max: 5,000,000 XAF</div>
+
+                            <button type="submit" style={{ width: '100%', background: '#6366F1', color: 'white', border: 'none', padding: '16px', borderRadius: '12px', fontSize: '16px', fontWeight: '600', cursor: 'pointer' }}>
+                                Get Quote
+                            </button>
+                        </form>
+                    ) : (
+                        <div>
+                            <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
+                                <div style={{ textAlign: 'center', padding: '16px 0', borderBottom: '1px solid #F3F4F6' }}>
+                                    <div style={{ fontSize: '14px', color: '#6B7280', marginBottom: '8px' }}>You Send</div>
+                                    <div style={{ fontSize: '36px', fontWeight: '700' }}>
+                                        {formatAmount(quote.sourceAmount)} <span style={{ fontSize: '20px', color: '#9CA3AF' }}>XAF</span>
+                                    </div>
+                                </div>
+
+                                <div style={{ textAlign: 'center', padding: '16px 0', borderBottom: '1px solid #F3F4F6' }}>
+                                    <div style={{ fontSize: '14px', color: '#6B7280', marginBottom: '8px' }}>They Receive</div>
+                                    <div style={{ fontSize: '36px', fontWeight: '700', color: '#10B981' }}>
+                                        {formatAmount(quote.destinationAmount)} <span style={{ fontSize: '20px', color: '#9CA3AF' }}>NGN</span>
+                                    </div>
+                                </div>
+
+                                <div style={{ padding: '16px 0' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0' }}>
+                                        <span style={{ color: '#6B7280' }}>Exchange Rate</span>
+                                        <span style={{ fontWeight: '600' }}>1 XAF = {quote.exchangeRate} NGN</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0' }}>
+                                        <span style={{ color: '#6B7280' }}>Ejara Fee (1.5%)</span>
+                                        <span style={{ fontWeight: '600' }}>{formatAmount(quote.ejaraFee)} XAF</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderTop: '2px solid #E5E7EB', marginTop: '8px', paddingTop: '16px' }}>
+                                        <span style={{ fontSize: '16px', fontWeight: '600' }}>Total Cost</span>
+                                        <span style={{ fontSize: '20px', fontWeight: '700' }}>{formatAmount(quote.totalCost)} XAF</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+                                <div style={{ display: 'inline-flex', padding: '8px 16px', borderRadius: '20px', background: timeLeft <= 10 ? '#FEE2E2' : '#FEF3C7', color: timeLeft <= 10 ? '#DC2626' : '#D97706', fontWeight: '600', fontSize: '14px' }}>
+                                    ⏱️ Quote expires in {timeLeft}s
+                                </div>
+                            </div>
+
+                            <button onClick={() => onAccept(quote)} disabled={timeLeft === 0} style={{ width: '100%', background: timeLeft === 0 ? '#C7D2FE' : '#6366F1', color: 'white', border: 'none', padding: '16px', borderRadius: '12px', fontSize: '16px', fontWeight: '600', cursor: timeLeft === 0 ? 'not-allowed' : 'pointer', marginBottom: '12px' }}>
+                                {timeLeft === 0 ? 'Quote Expired' : 'Accept Quote'}
+                            </button>
+
+                            <button onClick={() => { setQuote(null); setAmount(''); setTimeLeft(60); }} style={{ width: '100%', background: '#E0E7FF', color: '#6366F1', border: 'none', padding: '16px', borderRadius: '12px', fontSize: '16px', fontWeight: '600', cursor: 'pointer' }}>
+                                Reject & Try Again
+                            </button>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        function BeneficiaryForm({ agent, customer, quote, onComplete, onBack }) {
+            const [name, setName] = useState('');
+            const [bank, setBank] = useState('');
+            const [account, setAccount] = useState('');
+            const [country] = useState('Nigeria'); // Pre-filled from customer account
+            const [city, setCity] = useState('');
+            const [state, setState] = useState('');
+            const [street] = useState(customer.portfolio); // From customer's portfolio
+            const [postalCode] = useState(mockDB.ejaraCompanyCode); // Ejara company code
+            const [cashReceived, setCashReceived] = useState(false);
+            const [error, setError] = useState('');
+            const [loading, setLoading] = useState(false);
+
+            const banks = ['GTBank Nigeria', 'UBA Nigeria', 'Access Bank Nigeria', 'Zenith Bank Nigeria', 'First Bank Nigeria'];
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (!cashReceived) {
+                    setError('Please confirm you have received cash from customer');
+                    return;
+                }
+
+                setLoading(true);
+                setError('');
+
+                try {
+                    const result = mockAPI.createTransaction(
+                        agent.id, 
+                        customer.id, 
+                        { 
+                            beneficiaryName: name, 
+                            beneficiaryBank: bank, 
+                            beneficiaryAccount: account,
+                            beneficiaryCountry: country,
+                            beneficiaryCity: city,
+                            beneficiaryState: state,
+                            beneficiaryStreet: street,
+                            beneficiaryPostalCode: postalCode
+                        }, 
+                        quote
+                    );
+                    setTimeout(() => {
+                        onComplete(result.transaction);
+                    }, 500);
+                } catch (err) {
+                    setError(err.message);
+                    setLoading(false);
+                }
+            };
+
+            return (
+                <div style={{ padding: '20px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px' }}>
+                        <button onClick={onBack} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', marginRight: '16px' }}>←</button>
+                        <h2 style={{ fontSize: '18px', fontWeight: '600' }}>Beneficiary Details</h2>
+                    </div>
+
+                    <div style={{ background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: '12px', padding: '16px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between' }}>
+                        <div>
+                            <div style={{ fontSize: '14px', color: '#6B7280' }}>Total to Collect</div>
+                            <div style={{ fontSize: '24px', fontWeight: '700', marginTop: '4px' }}>{formatAmount(quote.totalCost)} XAF</div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontSize: '14px', color: '#6B7280' }}>They Receive</div>
+                            <div style={{ fontSize: '20px', fontWeight: '600', color: '#10B981', marginTop: '4px' }}>{formatAmount(quote.destinationAmount)} NGN</div>
+                        </div>
+                    </div>
+
+                    <form onSubmit={handleSubmit}>
+                        <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', color: '#1a1a1a' }}>Bank Account Information</h3>
+                        
+                        <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#6B7280', marginBottom: '8px' }}>Beneficiary Legal Name *</label>
+                        <input
+                            type="text"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            placeholder="e.g., Chukwudi Okafor"
+                            required
+                            autoFocus
+                            style={{ width: '100%', padding: '14px 16px', border: '1px solid #E5E7EB', borderRadius: '12px', fontSize: '16px', marginBottom: '16px' }}
+                        />
+
+                        <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#6B7280', marginBottom: '8px' }}>Bank *</label>
+                        <select
+                            value={bank}
+                            onChange={(e) => setBank(e.target.value)}
+                            required
+                            style={{ width: '100%', padding: '14px 16px', border: '1px solid #E5E7EB', borderRadius: '12px', fontSize: '16px', marginBottom: '16px', cursor: 'pointer' }}
+                        >
+                            <option value="">Select bank</option>
+                            {banks.map(b => <option key={b} value={b}>{b}</option>)}
+                        </select>
+
+                        <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#6B7280', marginBottom: '8px' }}>Account Number *</label>
+                        <input
+                            type="text"
+                            value={account}
+                            onChange={(e) => setAccount(e.target.value)}
+                            placeholder="10-digit account number"
+                            pattern="[0-9]{10}"
+                            maxLength="10"
+                            required
+                            style={{ width: '100%', padding: '14px 16px', border: '1px solid #E5E7EB', borderRadius: '12px', fontSize: '16px', marginBottom: '24px' }}
+                        />
+
+                        <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', color: '#1a1a1a' }}>Beneficiary Address</h3>
+
+                        <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#6B7280', marginBottom: '8px' }}>Country</label>
+                        <input
+                            type="text"
+                            value={country}
+                            disabled
+                            style={{ width: '100%', padding: '14px 16px', border: '1px solid #E5E7EB', borderRadius: '12px', fontSize: '16px', marginBottom: '16px', background: '#F9FAFB', color: '#6B7280' }}
+                        />
+
+                        <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#6B7280', marginBottom: '8px' }}>City *</label>
+                        <input
+                            type="text"
+                            value={city}
+                            onChange={(e) => setCity(e.target.value)}
+                            placeholder="e.g., Lagos"
+                            required
+                            style={{ width: '100%', padding: '14px 16px', border: '1px solid #E5E7EB', borderRadius: '12px', fontSize: '16px', marginBottom: '16px' }}
+                        />
+
+                        <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#6B7280', marginBottom: '8px' }}>State/Province *</label>
+                        <select
+                            value={state}
+                            onChange={(e) => setState(e.target.value)}
+                            required
+                            style={{ width: '100%', padding: '14px 16px', border: '1px solid #E5E7EB', borderRadius: '12px', fontSize: '16px', marginBottom: '16px', cursor: 'pointer' }}
+                        >
+                            <option value="">Select state</option>
+                            {nigerianStates.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+
+                        <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#6B7280', marginBottom: '8px' }}>Street/Address</label>
+                        <input
+                            type="text"
+                            value={street}
+                            disabled
+                            style={{ width: '100%', padding: '14px 16px', border: '1px solid #E5E7EB', borderRadius: '12px', fontSize: '16px', marginBottom: '8px', background: '#F9FAFB', color: '#6B7280' }}
+                        />
+                        <div style={{ fontSize: '12px', color: '#6B7280', marginBottom: '16px' }}>From customer profile</div>
+
+                        <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#6B7280', marginBottom: '8px' }}>Postal Code</label>
+                        <input
+                            type="text"
+                            value={postalCode}
+                            disabled
+                            style={{ width: '100%', padding: '14px 16px', border: '1px solid #E5E7EB', borderRadius: '12px', fontSize: '16px', marginBottom: '8px', background: '#F9FAFB', color: '#6B7280' }}
+                        />
+                        <div style={{ fontSize: '12px', color: '#6B7280', marginBottom: '24px' }}>Ejara company code</div>
+
+                        <div style={{ padding: '16px', background: '#FEF3C7', borderRadius: '12px', marginBottom: '16px' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={cashReceived}
+                                    onChange={(e) => setCashReceived(e.target.checked)}
+                                    style={{ width: '20px', height: '20px', marginRight: '12px', cursor: 'pointer' }}
+                                />
+                                <span style={{ fontSize: '14px', color: '#92400E', fontWeight: '500' }}>
+                                    I have received {formatAmount(quote.totalCost)} XAF cash from customer
+                                </span>
+                            </label>
+                        </div>
+
+                        {error && <div style={{ color: '#EF4444', fontSize: '14px', marginBottom: '16px', padding: '12px', background: '#FEE2E2', borderRadius: '8px' }}>{error}</div>}
+
+                        <button type="submit" disabled={!cashReceived || loading} style={{ width: '100%', background: (cashReceived && !loading) ? '#6366F1' : '#C7D2FE', color: 'white', border: 'none', padding: '16px', borderRadius: '12px', fontSize: '16px', fontWeight: '600', cursor: (cashReceived && !loading) ? 'pointer' : 'not-allowed' }}>
+                            {loading ? 'Processing...' : 'Confirm & Process Payment'}
+                        </button>
+                    </form>
+
+                    <div style={{ marginTop: '16px', padding: '12px', background: '#EFF6FF', borderRadius: '8px' }}>
+                        <p style={{ fontSize: '12px', color: '#1E40AF' }}>💡 Test: Account 0123456789, City: Lagos, State: Lagos</p>
+                    </div>
+                </div>
+            );
+        }
+
+        function Success({ transaction, onNew, onDashboard }) {
+            return (
+                <div style={{ padding: '20px' }}>
+                    <div style={{ textAlign: 'center', paddingTop: '40px' }}>
+                        <div style={{ width: '80px', height: '80px', background: '#D1FAE5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', fontSize: '48px', color: '#059669' }}>✓</div>
+
+                        <h2 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '8px' }}>Payment Successful!</h2>
+                        <p style={{ fontSize: '16px', color: '#6B7280', marginBottom: '32px' }}>Transaction has been initiated</p>
+                    </div>
+
+                    {/* Transaction Summary */}
+                    <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
+                        <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#6B7280', marginBottom: '12px' }}>TRANSACTION DETAILS</h3>
+                        
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #F3F4F6' }}>
+                            <span style={{ color: '#6B7280' }}>Transaction ID</span>
+                            <span style={{ fontWeight: '600', color: '#6366F1' }}>{transaction.id}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #F3F4F6' }}>
+                            <span style={{ color: '#6B7280' }}>Status</span>
+                            <span style={{ fontSize: '12px', padding: '4px 12px', borderRadius: '12px', background: '#FEF3C7', color: '#D97706', fontWeight: '600' }}>{transaction.status}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #F3F4F6' }}>
+                            <span style={{ color: '#6B7280' }}>Amount Sent</span>
+                            <span style={{ fontWeight: '600' }}>{formatAmount(transaction.sourceAmount)} XAF</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #F3F4F6' }}>
+                            <span style={{ color: '#6B7280' }}>Beneficiary Receives</span>
+                            <span style={{ fontWeight: '600', color: '#10B981' }}>{formatAmount(transaction.destinationAmount)} NGN</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #F3F4F6' }}>
+                            <span style={{ color: '#6B7280' }}>Estimated Delivery</span>
+                            <span style={{ fontWeight: '600' }}>1-3 business days</span>
+                        </div>
+                    </div>
+
+                    {/* Beneficiary Details */}
+                    <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
+                        <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#6B7280', marginBottom: '12px' }}>BENEFICIARY INFORMATION</h3>
+                        
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #F3F4F6' }}>
+                            <span style={{ color: '#6B7280' }}>Full Name</span>
+                            <span style={{ fontWeight: '600' }}>{transaction.beneficiaryName}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #F3F4F6' }}>
+                            <span style={{ color: '#6B7280' }}>Bank</span>
+                            <span style={{ fontWeight: '600' }}>{transaction.beneficiaryBank}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #F3F4F6' }}>
+                            <span style={{ color: '#6B7280' }}>Account Number</span>
+                            <span style={{ fontWeight: '600' }}>{transaction.beneficiaryAccount}</span>
+                        </div>
+                    </div>
+
+                    {/* Beneficiary Address */}
+                    <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: '16px', padding: '20px', marginBottom: '24px' }}>
+                        <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#6B7280', marginBottom: '12px' }}>BENEFICIARY ADDRESS</h3>
+                        
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #F3F4F6' }}>
+                            <span style={{ color: '#6B7280' }}>Country</span>
+                            <span style={{ fontWeight: '600' }}>{transaction.beneficiaryCountry}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #F3F4F6' }}>
+                            <span style={{ color: '#6B7280' }}>City</span>
+                            <span style={{ fontWeight: '600' }}>{transaction.beneficiaryCity}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #F3F4F6' }}>
+                            <span style={{ color: '#6B7280' }}>State/Province</span>
+                            <span style={{ fontWeight: '600' }}>{transaction.beneficiaryState}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #F3F4F6' }}>
+                            <span style={{ color: '#6B7280' }}>Street</span>
+                            <span style={{ fontWeight: '600' }}>{transaction.beneficiaryStreet}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0' }}>
+                            <span style={{ color: '#6B7280' }}>Postal Code</span>
+                            <span style={{ fontWeight: '600' }}>{transaction.beneficiaryPostalCode}</span>
+                        </div>
+                    </div>
+
+                    <div style={{ padding: '16px', background: '#D1FAE5', borderRadius: '12px', marginBottom: '24px' }}>
+                        <p style={{ fontSize: '14px', color: '#065F46' }}>📱 SMS receipt sent to customer and agent</p>
+                    </div>
+
+                    <button onClick={onNew} style={{ width: '100%', background: '#6366F1', color: 'white', border: 'none', padding: '16px', borderRadius: '12px', fontSize: '16px', fontWeight: '600', cursor: 'pointer', marginBottom: '12px' }}>
+                        ➕ New Transfer
+                    </button>
+
+                    <button onClick={onDashboard} style={{ width: '100%', background: '#E0E7FF', color: '#6366F1', border: 'none', padding: '16px', borderRadius: '12px', fontSize: '16px', fontWeight: '600', cursor: 'pointer' }}>
+                        Back to Dashboard
+                    </button>
+                </div>
+            );
+        }
+
+        function App() {
+            const [screen, setScreen] = useState('login');
+            const [agent, setAgent] = useState(null);
+            const [customer, setCustomer] = useState(null);
+            const [quote, setQuote] = useState(null);
+            const [transaction, setTransaction] = useState(null);
+
+            const resetFlow = () => {
+                setCustomer(null);
+                setQuote(null);
+                setTransaction(null);
+            };
+
+            return (
+                <div className="app-container">
+                    {screen === 'login' && <Login onLogin={(a) => { setAgent(a); setScreen('dashboard'); }} />}
+                    {screen === 'dashboard' && <Dashboard agent={agent} onNewTransfer={() => { resetFlow(); setScreen('search'); }} onLogout={() => { setAgent(null); resetFlow(); setScreen('login'); }} />}
+                    {screen === 'search' && <CustomerSearch onFound={(c) => { setCustomer(c); setScreen('quote'); }} onBack={() => setScreen('dashboard')} />}
+                    {screen === 'quote' && <QuoteDisplay agent={agent} customer={customer} onAccept={(q) => { setQuote(q); setScreen('beneficiary'); }} onBack={() => setScreen('search')} />}
+                    {screen === 'beneficiary' && <BeneficiaryForm agent={agent} customer={customer} quote={quote} onComplete={(t) => { setTransaction(t); setScreen('success'); }} onBack={() => setScreen('quote')} />}
+                    {screen === 'success' && <Success transaction={transaction} onNew={() => { resetFlow(); setScreen('search'); }} onDashboard={() => { resetFlow(); setScreen('dashboard'); }} />}
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
