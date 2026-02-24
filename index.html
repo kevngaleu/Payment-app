@@ -12,6 +12,9 @@
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #F5F7FA; }
         #root { min-height: 100vh; }
         .app-container { max-width: 480px; margin: 0 auto; background: white; min-height: 100vh; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
+        .file-upload-box { border: 2px dashed #E5E7EB; border-radius: 12px; padding: 24px; text-align: center; cursor: pointer; transition: all 0.2s; }
+        .file-upload-box:hover { border-color: #6366F1; background: #F9FAFB; }
+        .file-upload-box.has-file { border-color: #10B981; background: #ECFDF5; }
     </style>
 </head>
 <body>
@@ -20,7 +23,7 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // Mock Backend - includes customer address data
+        // Mock Backend
         const mockDB = {
             agents: [
                 { id: 'A001', username: 'agent001', name: 'Jean Mballa', phone: '+237670123456', pin: '1234', balance: 1000000 },
@@ -28,52 +31,24 @@
             ],
             customers: [
                 { 
-                    id: 'C001', 
-                    username: 'mme_tamo', 
-                    name: 'Mme Tamo', 
-                    phone: '+237680111111', 
-                    kycTier: 'basic',
-                    country: 'Cameroon',
-                    city: 'Yaoundé',
-                    region: 'Centre',
-                    portfolio: 'Marché Congo'
+                    id: 'C001', username: 'mme_tamo', name: 'Mme Tamo', phone: '+237680111111', 
+                    kycTier: 'basic', country: 'Cameroon', city: 'Yaoundé', region: 'Centre', portfolio: 'Marché Congo'
                 },
                 { 
-                    id: 'C002', 
-                    username: 'm_propers', 
-                    name: 'M. Propers', 
-                    phone: '+237680222222', 
-                    kycTier: 'basic',
-                    country: 'Cameroon',
-                    city: 'Douala',
-                    region: 'Littoral',
-                    portfolio: 'Marché Central'
+                    id: 'C002', username: 'm_propers', name: 'M. Propers', phone: '+237680222222', 
+                    kycTier: 'basic', country: 'Cameroon', city: 'Douala', region: 'Littoral', portfolio: 'Marché Central'
                 },
                 { 
-                    id: 'C003', 
-                    username: 'm_martin', 
-                    name: 'M. Martin', 
-                    phone: '+237680333333', 
-                    kycTier: 'basic',
-                    country: 'Cameroon',
-                    city: 'Yaoundé',
-                    region: 'Centre',
-                    portfolio: 'Marché Congo'
+                    id: 'C003', username: 'm_martin', name: 'M. Martin', phone: '+237680333333', 
+                    kycTier: 'basic', country: 'Cameroon', city: 'Yaoundé', region: 'Centre', portfolio: 'Marché Congo'
                 },
                 { 
-                    id: 'C004', 
-                    username: 'alice_traders', 
-                    name: 'Alice Mbongo', 
-                    phone: '+237680444444', 
-                    kycTier: 'basic',
-                    country: 'Cameroon',
-                    city: 'Yaoundé',
-                    region: 'Centre',
-                    portfolio: 'Marché Mfoundi'
+                    id: 'C004', username: 'alice_traders', name: 'Alice Mbongo', phone: '+237680444444', 
+                    kycTier: 'basic', country: 'Cameroon', city: 'Yaoundé', region: 'Centre', portfolio: 'Marché Mfoundi'
                 }
             ],
             transactions: [],
-            ejaraCompanyCode: '237'  // Ejara postal code
+            ejaraCompanyCode: '237'
         };
 
         const nigerianStates = [
@@ -116,7 +91,7 @@
                     sourceAmount: quote.sourceAmount,
                     destinationAmount: quote.destinationAmount,
                     totalCost: quote.totalCost,
-                    status: 'CREATED',
+                    status: 'PENDING',
                     createdAt: new Date().toISOString()
                 };
                 
@@ -154,25 +129,12 @@
 
                     <form onSubmit={handleSubmit}>
                         <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#6B7280', marginBottom: '8px' }}>Username</label>
-                        <input
-                            type="text"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            placeholder="Enter username"
-                            required
-                            style={{ width: '100%', padding: '14px 16px', border: '1px solid #E5E7EB', borderRadius: '12px', fontSize: '16px', marginBottom: '16px' }}
-                        />
+                        <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Enter username" required
+                            style={{ width: '100%', padding: '14px 16px', border: '1px solid #E5E7EB', borderRadius: '12px', fontSize: '16px', marginBottom: '16px' }} />
 
                         <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#6B7280', marginBottom: '8px' }}>PIN</label>
-                        <input
-                            type="password"
-                            value={pin}
-                            onChange={(e) => setPin(e.target.value)}
-                            placeholder="Enter 4-digit PIN"
-                            maxLength="4"
-                            required
-                            style={{ width: '100%', padding: '14px 16px', border: '1px solid #E5E7EB', borderRadius: '12px', fontSize: '16px', marginBottom: '16px' }}
-                        />
+                        <input type="password" value={pin} onChange={(e) => setPin(e.target.value)} placeholder="Enter 4-digit PIN" maxLength="4" required
+                            style={{ width: '100%', padding: '14px 16px', border: '1px solid #E5E7EB', borderRadius: '12px', fontSize: '16px', marginBottom: '16px' }} />
 
                         {error && <div style={{ color: '#EF4444', fontSize: '14px', marginBottom: '16px', textAlign: 'center', padding: '12px', background: '#FEE2E2', borderRadius: '8px' }}>{error}</div>}
 
@@ -197,6 +159,13 @@
             useEffect(() => {
                 setBalance(mockAPI.getAgentBalance(agent.id));
             }, [agent.id]);
+
+            const getStatusColor = (status) => {
+                if (status === 'PENDING') return { bg: '#FEF3C7', color: '#D97706' };
+                if (status === 'COMPLETED') return { bg: '#D1FAE5', color: '#059669' };
+                if (status === 'REJECTED') return { bg: '#FEE2E2', color: '#DC2626' };
+                return { bg: '#F3F4F6', color: '#6B7280' };
+            };
 
             return (
                 <div style={{ padding: '20px' }}>
@@ -229,20 +198,23 @@
                         </div>
                     ) : (
                         <div>
-                            {transactions.map(t => (
-                                <div key={t.id} style={{ padding: '16px', borderBottom: '1px solid #F3F4F6' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                        <span style={{ fontWeight: '600' }}>{t.id}</span>
-                                        <span style={{ fontSize: '12px', padding: '4px 12px', borderRadius: '12px', background: '#FEF3C7', color: '#D97706' }}>{t.status}</span>
+                            {transactions.map(t => {
+                                const statusStyle = getStatusColor(t.status);
+                                return (
+                                    <div key={t.id} style={{ padding: '16px', borderBottom: '1px solid #F3F4F6' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                            <span style={{ fontWeight: '600' }}>{t.id}</span>
+                                            <span style={{ fontSize: '12px', padding: '4px 12px', borderRadius: '12px', background: statusStyle.bg, color: statusStyle.color }}>{t.status}</span>
+                                        </div>
+                                        <div style={{ fontSize: '14px', color: '#6B7280' }}>
+                                            {formatAmount(t.sourceAmount)} XAF → {formatAmount(t.destinationAmount)} NGN
+                                        </div>
+                                        <div style={{ fontSize: '12px', color: '#9CA3AF', marginTop: '4px' }}>
+                                            To: {t.beneficiaryName}
+                                        </div>
                                     </div>
-                                    <div style={{ fontSize: '14px', color: '#6B7280' }}>
-                                        {formatAmount(t.sourceAmount)} XAF → {formatAmount(t.destinationAmount)} NGN
-                                    </div>
-                                    <div style={{ fontSize: '12px', color: '#9CA3AF', marginTop: '4px' }}>
-                                        To: {t.beneficiaryName}
-                                    </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
                 </div>
@@ -275,15 +247,8 @@
 
                     <form onSubmit={handleSearch}>
                         <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#6B7280', marginBottom: '8px' }}>Enter Customer Username</label>
-                        <input
-                            type="text"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            placeholder="e.g., mme_tamo"
-                            required
-                            autoFocus
-                            style={{ width: '100%', padding: '14px 16px', border: '1px solid #E5E7EB', borderRadius: '12px', fontSize: '16px', marginBottom: '16px' }}
-                        />
+                        <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="e.g., mme_tamo" required autoFocus
+                            style={{ width: '100%', padding: '14px 16px', border: '1px solid #E5E7EB', borderRadius: '12px', fontSize: '16px', marginBottom: '16px' }} />
 
                         {error && <div style={{ color: '#EF4444', fontSize: '14px', marginBottom: '16px', padding: '12px', background: '#FEE2E2', borderRadius: '8px' }}>{error}</div>}
 
@@ -368,18 +333,8 @@
                     {!quote ? (
                         <form onSubmit={handleGetQuote}>
                             <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#6B7280', marginBottom: '8px' }}>Amount to Send (XAF)</label>
-                            <input
-                                type="number"
-                                value={amount}
-                                onChange={(e) => setAmount(e.target.value)}
-                                placeholder="Enter amount"
-                                min="10000"
-                                max="5000000"
-                                step="1000"
-                                required
-                                autoFocus
-                                style={{ width: '100%', padding: '14px 16px', border: '1px solid #E5E7EB', borderRadius: '12px', fontSize: '16px', marginBottom: '8px' }}
-                            />
+                            <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Enter amount" min="10000" max="5000000" step="1000" required autoFocus
+                                style={{ width: '100%', padding: '14px 16px', border: '1px solid #E5E7EB', borderRadius: '12px', fontSize: '16px', marginBottom: '8px' }} />
                             <div style={{ fontSize: '12px', color: '#6B7280', marginBottom: '16px' }}>Min: 10,000 XAF • Max: 5,000,000 XAF</div>
 
                             <button type="submit" style={{ width: '100%', background: '#6366F1', color: 'white', border: 'none', padding: '16px', borderRadius: '12px', fontSize: '16px', fontWeight: '600', cursor: 'pointer' }}>
@@ -438,54 +393,55 @@
             );
         }
 
-        function BeneficiaryForm({ agent, customer, quote, onComplete, onBack }) {
-            const [name, setName] = useState('');
+        function BeneficiaryForm({ agent, customer, quote, onReview, onBack }) {
+            const [senderName, setSenderName] = useState('');
+            const [beneficiaryName, setBeneficiaryName] = useState('');
             const [bank, setBank] = useState('');
             const [account, setAccount] = useState('');
-            const [country] = useState('Nigeria'); // Pre-filled from customer account
+            const [country] = useState('Nigeria');
             const [city, setCity] = useState('');
             const [state, setState] = useState('');
-            const [street] = useState(customer.portfolio); // From customer's portfolio
-            const [postalCode] = useState(mockDB.ejaraCompanyCode); // Ejara company code
-            const [cashReceived, setCashReceived] = useState(false);
+            const [street] = useState(customer.portfolio);
+            const [postalCode] = useState(mockDB.ejaraCompanyCode);
+            const [invoice, setInvoice] = useState(null);
             const [error, setError] = useState('');
-            const [loading, setLoading] = useState(false);
 
             const banks = ['GTBank Nigeria', 'UBA Nigeria', 'Access Bank Nigeria', 'Zenith Bank Nigeria', 'First Bank Nigeria'];
 
+            const handleFileUpload = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'application/pdf'];
+                    if (!validTypes.includes(file.type)) {
+                        setError('Only PNG, JPG, or PDF files allowed');
+                        return;
+                    }
+                    if (file.size > 5 * 1024 * 1024) {
+                        setError('File size must be less than 5MB');
+                        return;
+                    }
+                    setInvoice(file);
+                    setError('');
+                }
+            };
+
             const handleSubmit = (e) => {
                 e.preventDefault();
-                if (!cashReceived) {
-                    setError('Please confirm you have received cash from customer');
-                    return;
-                }
-
-                setLoading(true);
-                setError('');
-
-                try {
-                    const result = mockAPI.createTransaction(
-                        agent.id, 
-                        customer.id, 
-                        { 
-                            beneficiaryName: name, 
-                            beneficiaryBank: bank, 
-                            beneficiaryAccount: account,
-                            beneficiaryCountry: country,
-                            beneficiaryCity: city,
-                            beneficiaryState: state,
-                            beneficiaryStreet: street,
-                            beneficiaryPostalCode: postalCode
-                        }, 
-                        quote
-                    );
-                    setTimeout(() => {
-                        onComplete(result.transaction);
-                    }, 500);
-                } catch (err) {
-                    setError(err.message);
-                    setLoading(false);
-                }
+                
+                const beneficiaryData = {
+                    senderName,
+                    beneficiaryName,
+                    beneficiaryBank: bank,
+                    beneficiaryAccount: account,
+                    beneficiaryCountry: country,
+                    beneficiaryCity: city,
+                    beneficiaryState: state,
+                    beneficiaryStreet: street,
+                    beneficiaryPostalCode: postalCode,
+                    invoice: invoice ? invoice.name : null
+                };
+                
+                onReview(beneficiaryData);
             };
 
             return (
@@ -507,115 +463,203 @@
                     </div>
 
                     <form onSubmit={handleSubmit}>
+                        <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', color: '#1a1a1a' }}>Sender Information</h3>
+                        
+                        <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#6B7280', marginBottom: '8px' }}>Sender Full Name *</label>
+                        <input type="text" value={senderName} onChange={(e) => setSenderName(e.target.value)} placeholder="e.g., Mme Tamo" required autoFocus
+                            style={{ width: '100%', padding: '14px 16px', border: '1px solid #E5E7EB', borderRadius: '12px', fontSize: '16px', marginBottom: '24px' }} />
+
                         <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', color: '#1a1a1a' }}>Bank Account Information</h3>
                         
                         <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#6B7280', marginBottom: '8px' }}>Beneficiary Legal Name *</label>
-                        <input
-                            type="text"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            placeholder="e.g., Chukwudi Okafor"
-                            required
-                            autoFocus
-                            style={{ width: '100%', padding: '14px 16px', border: '1px solid #E5E7EB', borderRadius: '12px', fontSize: '16px', marginBottom: '16px' }}
-                        />
+                        <input type="text" value={beneficiaryName} onChange={(e) => setBeneficiaryName(e.target.value)} placeholder="e.g., Chukwudi Okafor" required
+                            style={{ width: '100%', padding: '14px 16px', border: '1px solid #E5E7EB', borderRadius: '12px', fontSize: '16px', marginBottom: '16px' }} />
 
                         <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#6B7280', marginBottom: '8px' }}>Bank *</label>
-                        <select
-                            value={bank}
-                            onChange={(e) => setBank(e.target.value)}
-                            required
-                            style={{ width: '100%', padding: '14px 16px', border: '1px solid #E5E7EB', borderRadius: '12px', fontSize: '16px', marginBottom: '16px', cursor: 'pointer' }}
-                        >
+                        <select value={bank} onChange={(e) => setBank(e.target.value)} required
+                            style={{ width: '100%', padding: '14px 16px', border: '1px solid #E5E7EB', borderRadius: '12px', fontSize: '16px', marginBottom: '16px', cursor: 'pointer' }}>
                             <option value="">Select bank</option>
                             {banks.map(b => <option key={b} value={b}>{b}</option>)}
                         </select>
 
                         <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#6B7280', marginBottom: '8px' }}>Account Number *</label>
-                        <input
-                            type="text"
-                            value={account}
-                            onChange={(e) => setAccount(e.target.value)}
-                            placeholder="10-digit account number"
-                            pattern="[0-9]{10}"
-                            maxLength="10"
-                            required
-                            style={{ width: '100%', padding: '14px 16px', border: '1px solid #E5E7EB', borderRadius: '12px', fontSize: '16px', marginBottom: '24px' }}
-                        />
+                        <input type="text" value={account} onChange={(e) => setAccount(e.target.value)} placeholder="10-digit account number" pattern="[0-9]{10}" maxLength="10" required
+                            style={{ width: '100%', padding: '14px 16px', border: '1px solid #E5E7EB', borderRadius: '12px', fontSize: '16px', marginBottom: '24px' }} />
 
                         <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', color: '#1a1a1a' }}>Beneficiary Address</h3>
 
                         <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#6B7280', marginBottom: '8px' }}>Country</label>
-                        <input
-                            type="text"
-                            value={country}
-                            disabled
-                            style={{ width: '100%', padding: '14px 16px', border: '1px solid #E5E7EB', borderRadius: '12px', fontSize: '16px', marginBottom: '16px', background: '#F9FAFB', color: '#6B7280' }}
-                        />
+                        <input type="text" value={country} disabled
+                            style={{ width: '100%', padding: '14px 16px', border: '1px solid #E5E7EB', borderRadius: '12px', fontSize: '16px', marginBottom: '16px', background: '#F9FAFB', color: '#6B7280' }} />
 
                         <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#6B7280', marginBottom: '8px' }}>City *</label>
-                        <input
-                            type="text"
-                            value={city}
-                            onChange={(e) => setCity(e.target.value)}
-                            placeholder="e.g., Lagos"
-                            required
-                            style={{ width: '100%', padding: '14px 16px', border: '1px solid #E5E7EB', borderRadius: '12px', fontSize: '16px', marginBottom: '16px' }}
-                        />
+                        <input type="text" value={city} onChange={(e) => setCity(e.target.value)} placeholder="e.g., Lagos" required
+                            style={{ width: '100%', padding: '14px 16px', border: '1px solid #E5E7EB', borderRadius: '12px', fontSize: '16px', marginBottom: '16px' }} />
 
                         <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#6B7280', marginBottom: '8px' }}>State/Province *</label>
-                        <select
-                            value={state}
-                            onChange={(e) => setState(e.target.value)}
-                            required
-                            style={{ width: '100%', padding: '14px 16px', border: '1px solid #E5E7EB', borderRadius: '12px', fontSize: '16px', marginBottom: '16px', cursor: 'pointer' }}
-                        >
+                        <select value={state} onChange={(e) => setState(e.target.value)} required
+                            style={{ width: '100%', padding: '14px 16px', border: '1px solid #E5E7EB', borderRadius: '12px', fontSize: '16px', marginBottom: '16px', cursor: 'pointer' }}>
                             <option value="">Select state</option>
                             {nigerianStates.map(s => <option key={s} value={s}>{s}</option>)}
                         </select>
 
                         <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#6B7280', marginBottom: '8px' }}>Street/Address</label>
-                        <input
-                            type="text"
-                            value={street}
-                            disabled
-                            style={{ width: '100%', padding: '14px 16px', border: '1px solid #E5E7EB', borderRadius: '12px', fontSize: '16px', marginBottom: '8px', background: '#F9FAFB', color: '#6B7280' }}
-                        />
+                        <input type="text" value={street} disabled
+                            style={{ width: '100%', padding: '14px 16px', border: '1px solid #E5E7EB', borderRadius: '12px', fontSize: '16px', marginBottom: '8px', background: '#F9FAFB', color: '#6B7280' }} />
                         <div style={{ fontSize: '12px', color: '#6B7280', marginBottom: '16px' }}>From customer profile</div>
 
                         <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#6B7280', marginBottom: '8px' }}>Postal Code</label>
-                        <input
-                            type="text"
-                            value={postalCode}
-                            disabled
-                            style={{ width: '100%', padding: '14px 16px', border: '1px solid #E5E7EB', borderRadius: '12px', fontSize: '16px', marginBottom: '8px', background: '#F9FAFB', color: '#6B7280' }}
-                        />
+                        <input type="text" value={postalCode} disabled
+                            style={{ width: '100%', padding: '14px 16px', border: '1px solid #E5E7EB', borderRadius: '12px', fontSize: '16px', marginBottom: '8px', background: '#F9FAFB', color: '#6B7280' }} />
                         <div style={{ fontSize: '12px', color: '#6B7280', marginBottom: '24px' }}>Ejara company code</div>
 
-                        <div style={{ padding: '16px', background: '#FEF3C7', borderRadius: '12px', marginBottom: '16px' }}>
-                            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-                                <input
-                                    type="checkbox"
-                                    checked={cashReceived}
-                                    onChange={(e) => setCashReceived(e.target.checked)}
-                                    style={{ width: '20px', height: '20px', marginRight: '12px', cursor: 'pointer' }}
-                                />
-                                <span style={{ fontSize: '14px', color: '#92400E', fontWeight: '500' }}>
-                                    I have received {formatAmount(quote.totalCost)} XAF cash from customer
-                                </span>
-                            </label>
-                        </div>
+                        <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', color: '#1a1a1a' }}>Supporting Documents</h3>
 
-                        {error && <div style={{ color: '#EF4444', fontSize: '14px', marginBottom: '16px', padding: '12px', background: '#FEE2E2', borderRadius: '8px' }}>{error}</div>}
+                        <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#6B7280', marginBottom: '8px' }}>Upload Invoice (Optional)</label>
+                        <input type="file" id="invoice-upload" accept=".png,.jpg,.jpeg,.pdf" onChange={handleFileUpload} style={{ display: 'none' }} />
+                        <label htmlFor="invoice-upload" className={`file-upload-box ${invoice ? 'has-file' : ''}`}>
+                            {invoice ? (
+                                <div>
+                                    <div style={{ fontSize: '32px', marginBottom: '8px' }}>✓</div>
+                                    <div style={{ fontSize: '14px', fontWeight: '600', color: '#059669' }}>{invoice.name}</div>
+                                    <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>{(invoice.size / 1024).toFixed(1)} KB</div>
+                                </div>
+                            ) : (
+                                <div>
+                                    <div style={{ fontSize: '32px', marginBottom: '8px' }}>📄</div>
+                                    <div style={{ fontSize: '14px', fontWeight: '500', color: '#6B7280' }}>Click to upload invoice</div>
+                                    <div style={{ fontSize: '12px', color: '#9CA3AF', marginTop: '4px' }}>PNG, JPG, or PDF (max 5MB)</div>
+                                </div>
+                            )}
+                        </label>
 
-                        <button type="submit" disabled={!cashReceived || loading} style={{ width: '100%', background: (cashReceived && !loading) ? '#6366F1' : '#C7D2FE', color: 'white', border: 'none', padding: '16px', borderRadius: '12px', fontSize: '16px', fontWeight: '600', cursor: (cashReceived && !loading) ? 'pointer' : 'not-allowed' }}>
-                            {loading ? 'Processing...' : 'Confirm & Process Payment'}
+                        {error && <div style={{ color: '#EF4444', fontSize: '14px', marginTop: '16px', padding: '12px', background: '#FEE2E2', borderRadius: '8px' }}>{error}</div>}
+
+                        <button type="submit" style={{ width: '100%', background: '#6366F1', color: 'white', border: 'none', padding: '16px', borderRadius: '12px', fontSize: '16px', fontWeight: '600', cursor: 'pointer', marginTop: '24px' }}>
+                            Review Payment
                         </button>
                     </form>
 
                     <div style={{ marginTop: '16px', padding: '12px', background: '#EFF6FF', borderRadius: '8px' }}>
-                        <p style={{ fontSize: '12px', color: '#1E40AF' }}>💡 Test: Account 0123456789, City: Lagos, State: Lagos</p>
+                        <p style={{ fontSize: '12px', color: '#1E40AF' }}>💡 Test: Sender: Mme Tamo, Account: 0123456789, City: Lagos, State: Lagos</p>
                     </div>
+                </div>
+            );
+        }
+
+        function ConfirmationPage({ agent, customer, quote, beneficiary, onConfirm, onBack }) {
+            const [cashReceived, setCashReceived] = useState(false);
+            const [error, setError] = useState('');
+            const [loading, setLoading] = useState(false);
+
+            const handleConfirm = () => {
+                if (!cashReceived) {
+                    setError('Please confirm you have received cash from customer');
+                    return;
+                }
+                
+                setLoading(true);
+                setError('');
+                
+                try {
+                    const result = mockAPI.createTransaction(agent.id, customer.id, beneficiary, quote);
+                    setTimeout(() => {
+                        onConfirm(result.transaction);
+                    }, 500);
+                } catch (err) {
+                    setError(err.message);
+                    setLoading(false);
+                }
+            };
+
+            return (
+                <div style={{ padding: '20px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px' }}>
+                        <button onClick={onBack} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', marginRight: '16px' }}>←</button>
+                        <h2 style={{ fontSize: '18px', fontWeight: '600' }}>Review & Confirm</h2>
+                    </div>
+
+                    <div style={{ background: '#FEF3C7', border: '1px solid #F59E0B', borderRadius: '12px', padding: '16px', marginBottom: '24px' }}>
+                        <div style={{ fontSize: '14px', fontWeight: '600', color: '#92400E', marginBottom: '4px' }}>⚠️ Review all details carefully</div>
+                        <div style={{ fontSize: '13px', color: '#92400E' }}>Transaction cannot be reversed once confirmed</div>
+                    </div>
+
+                    <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
+                        <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#6B7280', marginBottom: '12px' }}>TRANSACTION SUMMARY</h3>
+                        
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #F3F4F6' }}>
+                            <span style={{ color: '#6B7280' }}>Amount to Send</span>
+                            <span style={{ fontWeight: '600' }}>{formatAmount(quote.sourceAmount)} XAF</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #F3F4F6' }}>
+                            <span style={{ color: '#6B7280' }}>Ejara Fee</span>
+                            <span style={{ fontWeight: '600' }}>{formatAmount(quote.ejaraFee)} XAF</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #F3F4F6' }}>
+                            <span style={{ color: '#6B7280' }}>Network Fee</span>
+                            <span style={{ fontWeight: '600' }}>{formatAmount(quote.networkFee)} XAF</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderTop: '2px solid #E5E7EB', marginTop: '8px' }}>
+                            <span style={{ fontSize: '16px', fontWeight: '600' }}>Total Cost</span>
+                            <span style={{ fontSize: '20px', fontWeight: '700' }}>{formatAmount(quote.totalCost)} XAF</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderTop: '1px solid #F3F4F6' }}>
+                            <span style={{ color: '#6B7280' }}>Beneficiary Receives</span>
+                            <span style={{ fontWeight: '600', color: '#10B981' }}>{formatAmount(quote.destinationAmount)} NGN</span>
+                        </div>
+                    </div>
+
+                    <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
+                        <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#6B7280', marginBottom: '12px' }}>SENDER & BENEFICIARY</h3>
+                        
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #F3F4F6' }}>
+                            <span style={{ color: '#6B7280' }}>Sender Name</span>
+                            <span style={{ fontWeight: '600' }}>{beneficiary.senderName}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #F3F4F6' }}>
+                            <span style={{ color: '#6B7280' }}>Beneficiary Name</span>
+                            <span style={{ fontWeight: '600' }}>{beneficiary.beneficiaryName}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #F3F4F6' }}>
+                            <span style={{ color: '#6B7280' }}>Bank</span>
+                            <span style={{ fontWeight: '600' }}>{beneficiary.beneficiaryBank}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #F3F4F6' }}>
+                            <span style={{ color: '#6B7280' }}>Account Number</span>
+                            <span style={{ fontWeight: '600' }}>{beneficiary.beneficiaryAccount}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0' }}>
+                            <span style={{ color: '#6B7280' }}>Location</span>
+                            <span style={{ fontWeight: '600' }}>{beneficiary.beneficiaryCity}, {beneficiary.beneficiaryState}</span>
+                        </div>
+                        {beneficiary.invoice && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderTop: '1px solid #F3F4F6' }}>
+                                <span style={{ color: '#6B7280' }}>Invoice Attached</span>
+                                <span style={{ fontWeight: '600', color: '#10B981' }}>✓ {beneficiary.invoice}</span>
+                            </div>
+                        )}
+                    </div>
+
+                    <div style={{ padding: '16px', background: '#FEF3C7', borderRadius: '12px', marginBottom: '16px' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                            <input type="checkbox" checked={cashReceived} onChange={(e) => setCashReceived(e.target.checked)}
+                                style={{ width: '20px', height: '20px', marginRight: '12px', cursor: 'pointer' }} />
+                            <span style={{ fontSize: '14px', color: '#92400E', fontWeight: '500' }}>
+                                I have received {formatAmount(quote.totalCost)} XAF cash from {beneficiary.senderName}
+                            </span>
+                        </label>
+                    </div>
+
+                    {error && <div style={{ color: '#EF4444', fontSize: '14px', marginBottom: '16px', padding: '12px', background: '#FEE2E2', borderRadius: '8px' }}>{error}</div>}
+
+                    <button onClick={handleConfirm} disabled={!cashReceived || loading} 
+                        style={{ width: '100%', background: (cashReceived && !loading) ? '#6366F1' : '#C7D2FE', color: 'white', border: 'none', padding: '16px', borderRadius: '12px', fontSize: '16px', fontWeight: '600', cursor: (cashReceived && !loading) ? 'pointer' : 'not-allowed', marginBottom: '12px' }}>
+                        {loading ? 'Processing...' : 'Confirm & Initiate Payment'}
+                    </button>
+
+                    <button onClick={onBack} style={{ width: '100%', background: '#E0E7FF', color: '#6366F1', border: 'none', padding: '16px', borderRadius: '12px', fontSize: '16px', fontWeight: '600', cursor: 'pointer' }}>
+                        Back to Edit Details
+                    </button>
                 </div>
             );
         }
@@ -624,13 +668,12 @@
             return (
                 <div style={{ padding: '20px' }}>
                     <div style={{ textAlign: 'center', paddingTop: '40px' }}>
-                        <div style={{ width: '80px', height: '80px', background: '#D1FAE5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', fontSize: '48px', color: '#059669' }}>✓</div>
+                        <div style={{ width: '80px', height: '80px', background: '#FEF3C7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', fontSize: '48px' }}>⏳</div>
 
-                        <h2 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '8px' }}>Payment Successful!</h2>
-                        <p style={{ fontSize: '16px', color: '#6B7280', marginBottom: '32px' }}>Transaction has been initiated</p>
+                        <h2 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '8px' }}>Payment Initiated!</h2>
+                        <p style={{ fontSize: '16px', color: '#6B7280', marginBottom: '32px' }}>Transaction is being processed</p>
                     </div>
 
-                    {/* Transaction Summary */}
                     <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
                         <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#6B7280', marginBottom: '12px' }}>TRANSACTION DETAILS</h3>
                         
@@ -641,6 +684,10 @@
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #F3F4F6' }}>
                             <span style={{ color: '#6B7280' }}>Status</span>
                             <span style={{ fontSize: '12px', padding: '4px 12px', borderRadius: '12px', background: '#FEF3C7', color: '#D97706', fontWeight: '600' }}>{transaction.status}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #F3F4F6' }}>
+                            <span style={{ color: '#6B7280' }}>Sender</span>
+                            <span style={{ fontWeight: '600' }}>{transaction.senderName}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #F3F4F6' }}>
                             <span style={{ color: '#6B7280' }}>Amount Sent</span>
@@ -656,7 +703,6 @@
                         </div>
                     </div>
 
-                    {/* Beneficiary Details */}
                     <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
                         <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#6B7280', marginBottom: '12px' }}>BENEFICIARY INFORMATION</h3>
                         
@@ -668,20 +714,15 @@
                             <span style={{ color: '#6B7280' }}>Bank</span>
                             <span style={{ fontWeight: '600' }}>{transaction.beneficiaryBank}</span>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #F3F4F6' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0' }}>
                             <span style={{ color: '#6B7280' }}>Account Number</span>
                             <span style={{ fontWeight: '600' }}>{transaction.beneficiaryAccount}</span>
                         </div>
                     </div>
 
-                    {/* Beneficiary Address */}
                     <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: '16px', padding: '20px', marginBottom: '24px' }}>
                         <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#6B7280', marginBottom: '12px' }}>BENEFICIARY ADDRESS</h3>
                         
-                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #F3F4F6' }}>
-                            <span style={{ color: '#6B7280' }}>Country</span>
-                            <span style={{ fontWeight: '600' }}>{transaction.beneficiaryCountry}</span>
-                        </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #F3F4F6' }}>
                             <span style={{ color: '#6B7280' }}>City</span>
                             <span style={{ fontWeight: '600' }}>{transaction.beneficiaryCity}</span>
@@ -690,13 +731,9 @@
                             <span style={{ color: '#6B7280' }}>State/Province</span>
                             <span style={{ fontWeight: '600' }}>{transaction.beneficiaryState}</span>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #F3F4F6' }}>
-                            <span style={{ color: '#6B7280' }}>Street</span>
-                            <span style={{ fontWeight: '600' }}>{transaction.beneficiaryStreet}</span>
-                        </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0' }}>
-                            <span style={{ color: '#6B7280' }}>Postal Code</span>
-                            <span style={{ fontWeight: '600' }}>{transaction.beneficiaryPostalCode}</span>
+                            <span style={{ color: '#6B7280' }}>Country</span>
+                            <span style={{ fontWeight: '600' }}>{transaction.beneficiaryCountry}</span>
                         </div>
                     </div>
 
@@ -720,11 +757,13 @@
             const [agent, setAgent] = useState(null);
             const [customer, setCustomer] = useState(null);
             const [quote, setQuote] = useState(null);
+            const [beneficiary, setBeneficiary] = useState(null);
             const [transaction, setTransaction] = useState(null);
 
             const resetFlow = () => {
                 setCustomer(null);
                 setQuote(null);
+                setBeneficiary(null);
                 setTransaction(null);
             };
 
@@ -734,7 +773,8 @@
                     {screen === 'dashboard' && <Dashboard agent={agent} onNewTransfer={() => { resetFlow(); setScreen('search'); }} onLogout={() => { setAgent(null); resetFlow(); setScreen('login'); }} />}
                     {screen === 'search' && <CustomerSearch onFound={(c) => { setCustomer(c); setScreen('quote'); }} onBack={() => setScreen('dashboard')} />}
                     {screen === 'quote' && <QuoteDisplay agent={agent} customer={customer} onAccept={(q) => { setQuote(q); setScreen('beneficiary'); }} onBack={() => setScreen('search')} />}
-                    {screen === 'beneficiary' && <BeneficiaryForm agent={agent} customer={customer} quote={quote} onComplete={(t) => { setTransaction(t); setScreen('success'); }} onBack={() => setScreen('quote')} />}
+                    {screen === 'beneficiary' && <BeneficiaryForm agent={agent} customer={customer} quote={quote} onReview={(b) => { setBeneficiary(b); setScreen('confirmation'); }} onBack={() => setScreen('quote')} />}
+                    {screen === 'confirmation' && <ConfirmationPage agent={agent} customer={customer} quote={quote} beneficiary={beneficiary} onConfirm={(t) => { setTransaction(t); setScreen('success'); }} onBack={() => setScreen('beneficiary')} />}
                     {screen === 'success' && <Success transaction={transaction} onNew={() => { resetFlow(); setScreen('search'); }} onDashboard={() => { resetFlow(); setScreen('dashboard'); }} />}
                 </div>
             );
