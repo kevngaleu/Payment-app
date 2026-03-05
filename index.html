@@ -402,19 +402,11 @@
                                         <span style={{ color: '#6B7280' }}>Exchange Rate</span>
                                         <span style={{ fontWeight: '600' }}>1 XAF = {quote.exchangeRate} NGN</span>
                                     </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 0' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 0', borderBottom: '2px solid #E5E7EB', marginTop: '8px', paddingBottom: '12px' }}>
                                         <div style={{ fontSize: '11px', padding: '4px 10px', background: '#EFF6FF', color: '#3B82F6', borderRadius: '12px', fontWeight: '500' }}>
                                             ⚡ Powered by crypto rails
                                         </div>
                                         <span style={{ fontSize: '11px', color: '#9CA3AF' }}>Fast & secure settlement</span>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0' }}>
-                                        <span style={{ color: '#6B7280' }}>Ejara Fee (1.5%)</span>
-                                        <span style={{ fontWeight: '600' }}>{formatAmount(quote.ejaraFee)} XAF</span>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0' }}>
-                                        <span style={{ color: '#6B7280' }}>Network Fee (0.7%)</span>
-                                        <span style={{ fontWeight: '600' }}>{formatAmount(quote.networkFee)} XAF</span>
                                     </div>
                                 </div>
                             </div>
@@ -627,12 +619,12 @@
                             <span style={{ fontWeight: '600' }}>{formatAmount(quote.sourceAmount)} XAF</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #F3F4F6' }}>
-                            <span style={{ color: '#6B7280' }}>Ejara Fee</span>
-                            <span style={{ fontWeight: '600' }}>{formatAmount(quote.ejaraFee)} XAF</span>
+                            <span style={{ color: '#6B7280' }}>Exchange Rate</span>
+                            <span style={{ fontWeight: '600' }}>1 XAF = {quote.exchangeRate} NGN</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #F3F4F6' }}>
-                            <span style={{ color: '#6B7280' }}>Network Fee</span>
-                            <span style={{ fontWeight: '600' }}>{formatAmount(quote.networkFee)} XAF</span>
+                            <span style={{ color: '#6B7280' }}>Fees</span>
+                            <span style={{ fontWeight: '600' }}>{formatAmount(quote.totalCost - quote.sourceAmount)} XAF</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderTop: '2px solid #E5E7EB', marginTop: '8px' }}>
                             <span style={{ fontSize: '16px', fontWeight: '600' }}>Total Cost</span>
@@ -642,15 +634,15 @@
                             <span style={{ color: '#6B7280' }}>Beneficiary Receives</span>
                             <span style={{ fontWeight: '600', color: '#10B981' }}>{formatAmount(quote.destinationAmount)} NGN</span>
                         </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', background: '#F0FDF4', marginTop: '12px', marginLeft: '-20px', marginRight: '-20px', paddingLeft: '20px', paddingRight: '20px', borderRadius: '0 0 16px 16px' }}>
+                            <span style={{ color: '#059669', fontWeight: '600' }}>Your Commission</span>
+                            <span style={{ fontWeight: '700', color: '#059669' }}>+{formatAmount(agentCommission)} XAF</span>
+                        </div>
                     </div>
 
                     <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
-                        <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#6B7280', marginBottom: '12px' }}>SENDER & BENEFICIARY</h3>
+                        <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#6B7280', marginBottom: '12px' }}>BENEFICIARY DETAILS</h3>
                         
-                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #F3F4F6' }}>
-                            <span style={{ color: '#6B7280' }}>Sender Name</span>
-                            <span style={{ fontWeight: '600' }}>{beneficiary.senderName}</span>
-                        </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #F3F4F6' }}>
                             <span style={{ color: '#6B7280' }}>Beneficiary Name</span>
                             <span style={{ fontWeight: '600' }}>{beneficiary.beneficiaryName}</span>
